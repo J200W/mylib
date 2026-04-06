@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+	{{ page_title }}
+	— Administration
+{% endblock %}
+
+{% block body %}
+	<div class="admin-page">
+
+		<div class="admin-content admin-content--form">
+			<p class="admin-form-back">
+				<a href="{{ path('app_admin') }}#admin-catalogue" class="admin-btn admin-btn--outline admin-btn--sm">← Retour au catalogue</a>
+			</p>
+			{% for label, messages in app.flashes %}
+				{% for message in messages %}
+					<p class="account-flash account-flash--{{ label }}" role="alert">{{ message }}</p>
+				{% endfor %}
+			{% endfor %}
+			<h1 class="admin-section__title">{{ page_title }}</h1>
+			<div class="admin-card admin-catalog-form-card">
+				{% block catalog_form %}{% endblock %}
+			</div>
+		</div>
+
+	</div>
+{% endblock %}

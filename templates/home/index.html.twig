@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bienvenue{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block body %}
+	<section class="welcome" aria-labelledby="welcome-title">
+		<div class="welcome-inner">
+			<h1 id="welcome-title" class="welcome-title">Bienvenue sur MyLib</h1>
+			<p class="welcome-tagline">
+				Découvrez notre catalogue de livres, réservez vos lectures et suivez vos favoris en un seul endroit.
+			</p>
+			<div class="welcome-ctas">
+				<a class="btn-welcome btn-welcome--primary" href="{{ path('app_book_catalogue') }}">Parcourir le catalogue</a>
+				<a class="btn-welcome btn-welcome--outline" href="{{ path('app_auth_login') }}">Se connecter</a>
+			</div>
+		</div>
+	</section>
+{% endblock %}
+
+{% block footer %}{% endblock %}

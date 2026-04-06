@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Éditer un usager — Administration
+{% endblock %}
+
+{% block body %}
+	<div class="admin-page">
+		<div class="admin-content admin-content--form">
+			<p class="admin-form-back">
+				<a href="{{ path('app_admin') }}#admin-users" class="admin-linkish">← Retour à l’administration</a>
+			</p>
+			<h1 class="admin-masthead__title">Éditer le profil</h1>
+			<p class="admin-section__desc">{{ edit_user.email }}</p>
+
+			<div class="admin-card">
+				{{ form_start(form, { attr: { class: 'admin-user-edit-form' } }) }}
+				{{ form_row(form.email) }}
+				{{ form_row(form.firstname) }}
+				{{ form_row(form.lastname) }}
+				{{ form_row(form.plainPassword) }}
+				{{ form_row(form.plainPasswordConfirm) }}
+				<div class="admin-catalog-form__actions">
+					<button type="submit" class="admin-btn admin-btn--primary">Enregistrer</button>
+					<a href="{{ path('app_admin') }}#admin-users" class="admin-btn admin-btn--outline">Annuler</a>
+				</div>
+				{{ form_end(form) }}
+			</div>
+		</div>
+	</div>
+{% endblock %}

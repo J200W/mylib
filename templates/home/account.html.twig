@@ -1,0 +1,211 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon compte{% endblock %}
+
+{% block body %}
+	<div class="account-page">
+		{% for label, messages in app.flashes %}
+			{% for message in messages %}
+				<p class="account-flash account-flash--{{ label }}" role="alert">{{ message }}</p>
+			{% endfor %}
+		{% endfor %}
+
+		<div class="account-page__header">
+			<h1 class="account-page__title">Mon compte</h1>
+			<p class="account-page__welcome">
+				Bonjour,
+				<strong>{{ app.user.firstname }}
+					{{ app.user.lastname }}</strong>
+				<span class="account-page__email">({{ app.user.email }})</span>
+			</p>
+		</div>
+
+		<section class="account-section" aria-labelledby="account-favorites-heading">
+			<div class="account-section__head">
+				<h2 id="account-favorites-heading" class="account-section__title">
+					<i class="bi bi-heart-fill account-section__title-icon" aria-hidden="true"></i>
+					Mes favoris
+				</h2>
+				{% if has_more_favorites %}
+					<a href="{{ path('app_book_favorites') }}" class="account-section__more">Voir plus</a>
+				{% endif %}
+			</div>
+
+			{% if favorite_preview is empty %}
+				<p class="account-empty">Vous n’avez pas encore de favoris.</p>
+				<p class="account-empty__hint">
+					<a href="{{ path('app_book_catalogue') }}">Parcourir le catalogue</a>
+				</p>
+			{% else %}
+				<div class="account-carousel" role="region" aria-roledescription="carousel" aria-labelledby="account-favorites-heading" tabindex="0">
+					<ul class="account-carousel__track">
+						{% for book in favorite_preview %}
+							<li class="account-carousel__item">
+								<a href="{{ path('app_book_show', { id: book.id }) }}" class="catalogue-card account-carousel__catalogue-card">
+									<div class="catalogue-card__cover">
+										<img src="{{ asset('img/covers/' ~ book.id ~ '.jpg') }}" alt="{{ book.title }}" class="catalogue-card__cover-img" loading="lazy" decoding="async">
+									</div>
+									<div class="catalogue-card__body">
+										<h3 class="catalogue-card__title">{{ book.title }}</h3>
+										<p class="catalogue-card__subtitle">{{ book.author.firstname }}
+											{{ book.author.lastname }}</p>
+										<div class="catalogue-card__meta">
+											<div>
+												<dt>Catégories</dt>
+												<dd>{{ book.category|map(c => c.name)|join(', ') }}</dd>
+											</div>
+										</div>
+									</div>
+								</a>
+							</li>
+						{% endfor %}
+					</ul>
+				</div>
+			{% endif %}
+		</section>
+
+		<section class="account-section" aria-labelledby="account-reservations-heading">
+			<div class="account-section__head">
+				<h2 id="account-reservations-heading" class="account-section__title">
+					<i class="bi bi-journal-bookmark account-section__title-icon" aria-hidden="true"></i>
+					Mes demandes d'emprunt
+				</h2>
+			</div>
+
+			{% if reservations is empty %}
+				<p class="account-empty">Aucune demande d'emprunt pour le moment.</p>
+			{% else %}
+				<div class="account-table-wrap">
+					<table class="account-table">
+						<thead>
+							<tr>
+								<th scope="col">Livre</th>
+								<th scope="col">Auteur</th>
+								<th scope="col">Début</th>
+								<th scope="col">Fin</th>
+								<th scope="col">Statut</th>
+								<th scope="col">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for r in reservations %}
+								{% set st = r.status %}
+								{% set reservation_pending = (st ?? 0) == 0 %}
+								<tr>
+									<td>
+										<a href="{{ path('app_book_show', { id: r.book.id }) }}" class="account-table__book-link">{{ r.book.title }}</a>
+									</td>
+									<td>{{ r.book.author.firstname }}
+										{{ r.book.author.lastname }}</td>
+									<td>{{ r.dateStart|date('d/m/Y') }}</td>
+									<td>{{ r.dateEnd|date('d/m/Y') }}</td>
+									<td>
+										{% if st == 0 %}
+											<span class="account-badge account-badge--pending">En attente</span>
+										{% elseif st == 1 %}
+											<span class="account-badge account-badge--ok">Acceptée</span>
+										{% elseif st == 2 %}
+											<span class="account-badge account-badge--no">Refusée</span>
+										{% elseif st == 3 %}
+											<span class="account-badge account-badge--muted">Lu / Rendu</span>
+										{% else %}
+											<span class="account-badge account-badge--muted">—</span>
+										{% endif %}
+									</td>
+									<td class="account-table__reservation-edit">
+										{% if reservation_pending and reservation_edit_forms[r.id] is defined %}
+											{% set reservation_edit_form = reservation_edit_forms[r.id] %}
+											<div class="account-reservation-actions">
+												{{ form_start(reservation_edit_form, { attr: { class: 'account-reservation-form js-account-reservation-dates' } }) }}
+												<div class="account-reservation-form__fields">
+													{{ form_row(reservation_edit_form.date_start, {
+														row_attr: { class: 'account-reservation-form__field' },
+														label_attr: { class: 'account-reservation-form__label' },
+														attr: { class: 'account-reservation-form__input' }
+													}) }}
+													{{ form_row(reservation_edit_form.date_end, {
+														row_attr: { class: 'account-reservation-form__field' },
+														label_attr: { class: 'account-reservation-form__label' },
+														attr: { class: 'account-reservation-form__input' }
+													}) }}
+												</div>
+												<button type="submit" class="account-reservation-form__submit">Enregistrer</button>
+												{{ form_end(reservation_edit_form) }}
+												<form method="post" action="{{ path('app_account_reservation_cancel', { id: r.id }) }}" class="account-reservation-cancel-form" data-confirm="Annuler définitivement cette demande d’emprunt ?">
+													<input type="hidden" name="_token" value="{{ csrf_token('account_reservation_cancel_' ~ r.id) }}">
+													<button type="submit" class="account-reservation-form__cancel-request">Annuler la demande</button>
+												</form>
+											</div>
+										{% elseif st == 1 and r.dateStart|date('Y-m-d') <= 'now'|date('Y-m-d') %}
+											<form method="post" action="{{ path('app_account_reservation_return', { id: r.id }) }}" class="account-reservation-return-form" data-confirm="Confirmer le retour de ce livre ? L’emprunt sera clos et l’exemplaire remis au stock.">
+												<input type="hidden" name="_token" value="{{ csrf_token('account_reservation_return_' ~ r.id) }}">
+												<button type="submit" class="account-reservation-return-form__submit">Rendre le livre</button>
+											</form>
+										{% elseif st == 1 %}
+											<p class="account-table__action-hint">Dès le
+												{{ r.dateStart|date('d/m/Y') }}, vous pourrez signaler un retour anticipé ici.</p>
+										{% else %}
+											<span class="account-table__dash" aria-hidden="true">—</span>
+										{% endif %}
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			{% endif %}
+		</section>
+	</div>
+
+	<script>
+		(function () {
+const maxSpan = 21;
+function pad(n) {
+return String(n).padStart(2, '0');
+}
+function toYMD(d) {
+return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function bindForm(form) {
+const dateInputs = form.querySelectorAll('input[type="date"]');
+const startInput = dateInputs[0];
+const endInput = dateInputs[1];
+if (! startInput || ! endInput) {
+return;
+}
+function updateEndConstraints() {
+const v = startInput.value;
+if (! v) {
+return;
+}
+const parts = v.split('-').map(Number);
+const start = new Date(parts[0], parts[1] - 1, parts[2]);
+if (Number.isNaN(start.getTime())) {
+return;
+}
+const max = new Date(start);
+max.setDate(max.getDate() + maxSpan);
+endInput.min = v;
+endInput.max = toYMD(max);
+if (endInput.value && (endInput.value < endInput.min || endInput.value > endInput.max)) {
+endInput.value = endInput.min;
+}
+}
+startInput.addEventListener('change', updateEndConstraints);
+updateEndConstraints();
+}
+document.querySelectorAll('.js-account-reservation-dates').forEach(bindForm);
+document.querySelectorAll('form[data-confirm]').forEach((form) => {
+const msg = form.getAttribute('data-confirm');
+if (! msg) {
+return;
+}
+form.addEventListener('submit', (e) => {
+if (! window.confirm(msg)) {
+e.preventDefault();
+}
+});
+});
+})();
+	</script>
+{% endblock %}

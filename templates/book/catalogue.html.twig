@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catalogue
+{% endblock %}
+
+{% block body %}
+	<div id="catalogue-top" class="catalogue-page" tabindex="-1">
+		<form class="catalogue-layout" method="get" action="{{ path('app_book_catalogue') }}" id="catalogue-form">
+			<input type="hidden" name="cat" id="catalogue-filter-cat" value="{{ filters.cat|join(',') }}">
+			<input type="hidden" name="lang" id="catalogue-filter-lang" value="{{ filters.lang|join(',') }}">
+			<aside class="catalogue-sidebar" aria-label="Filtres du catalogue">
+				<section class="catalogue-filter">
+					<h2 class="catalogue-filter__title">
+						<i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+						Catégories</h2>
+					<div class="catalogue-filter__options">
+						{% for c in categories %}
+							<label class="catalogue-check">
+								<input type="checkbox" data-filter-cat value="{{ c.id }}" {{ c.id in filters.cat ? 'checked' }}>
+								<span>{{ c.name }}</span>
+							</label>
+						{% endfor %}
+					</div>
+				</section>
+
+				<section class="catalogue-filter">
+					<h2 class="catalogue-filter__title">
+						<i class="bi bi-translate" aria-hidden="true"></i>
+						Langues</h2>
+					<div class="catalogue-filter__options">
+						{% for l in languages %}
+							<label class="catalogue-check">
+								<input type="checkbox" data-filter-lang value="{{ l.id }}" {{ l.id in filters.lang ? 'checked' }}>
+								<span>{{ l.country }}
+									({{ l.shortcode|upper }})</span>
+							</label>
+						{% endfor %}
+					</div>
+				</section>
+
+				<section class="catalogue-filter">
+					<h2 class="catalogue-filter__title">
+						<i class="bi bi-box-seam" aria-hidden="true"></i>
+						Disponibilité</h2>
+					<div class="catalogue-filter__options">
+						<label class="catalogue-check">
+							<input type="checkbox" name="in_stock" value="1" {{ filters.in_stock ? 'checked' }}>
+							<span>En stock uniquement</span>
+						</label>
+					</div>
+				</section>
+
+				<button type="submit" class="catalogue-sidebar__submit">Appliquer les filtres</button>
+			</aside>
+
+			<div class="catalogue-main">
+				<h1 class="catalogue-sidebar__brand">
+					<i class="bi bi-stack catalogue-sidebar__brand-icon" aria-hidden="true"></i>
+					<span>Catalogue</span>
+				</h1>
+				<div class="catalogue-main__search">
+					<i class="bi bi-search catalogue-main__search-icon" aria-hidden="true"></i>
+					<label class="visually-hidden" for="catalogue-q">Rechercher un titre</label>
+					<input type="search" id="catalogue-q" name="q" value="{{ filters.q }}" placeholder="Rechercher un titre…" autocomplete="off">
+				</div>
+
+				<div class="catalogue-toolbar">
+					<a href="{{ path('app_book_catalogue') }}" class="catalogue-tool catalogue-tool--icon" title="Réinitialiser les filtres" aria-label="Réinitialiser les filtres">
+						<i class="bi bi-x-lg" aria-hidden="true"></i>
+					</a>
+					<a href="{{ path('app_book_catalogue', app.request.query.all|merge({'sort': 'random'})) }}" class="catalogue-tool">
+						<i class="bi bi-shuffle" aria-hidden="true"></i>
+						Aléatoire
+					</a>
+					<div class="catalogue-toolbar__sort">
+						<i class="bi bi-sort-down" aria-hidden="true"></i>
+						<label class="visually-hidden" for="catalogue-sort">Trier</label>
+						<select id="catalogue-sort" name="sort" class="catalogue-sort" onchange="this.form.submit()">
+							<option value="title" {{ filters.sort == 'title' ? 'selected' }}>Titre (A → Z)</option>
+							<option value="title_desc" {{ filters.sort == 'title_desc' ? 'selected' }}>Titre (Z → A)</option>
+							<option value="stock" {{ filters.sort == 'stock' ? 'selected' }}>Stock</option>
+							<option value="random" {{ filters.sort == 'random' ? 'selected' }}>Aléatoire</option>
+						</select>
+					</div>
+				</div>
+
+				{% if books is empty %}
+					<p class="catalogue-empty">Aucun livre ne correspond à ces critères.</p>
+				{% else %}
+					<ul class="catalogue-grid">
+						{% for book in books %}
+							<a href="{{ path('app_book_show', { id: book.id }) }}" class="catalogue-card">
+								<div class="catalogue-card__cover">
+                                    <img src="{{ asset('img/covers/' ~ book.id ~ '.jpg') }}" alt="{{ book.title }}" class="catalogue-card__cover-img">
+								</div>
+								<div class="catalogue-card__body">
+									<h3 class="catalogue-card__title">{{ book.title }}</h3>
+									<p class="catalogue-card__subtitle">{{ book.author.firstname }}
+										{{ book.author.lastname }}</p>
+									<div class="catalogue-card__meta">
+										<div>
+											<dt>Catégories</dt>
+											<dd>{{ book.category|map(c => c.name)|join(', ') }}</dd>
+										</div>
+									</div>
+								</div>
+							</a>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			</div>
+		</form>
+
+		<a href="#catalogue-top" class="catalogue-backtop" title="Haut de page" aria-label="Retour en haut de la page">
+			<i class="bi bi-arrow-up" aria-hidden="true"></i>
+		</a>
+	</div>
+
+	<script>
+		(function () {
+            const form = document.getElementById('catalogue-form');
+            if (!form) {
+                return;
+            }
+            const catHidden = document.getElementById('catalogue-filter-cat');
+            const langHidden = document.getElementById('catalogue-filter-lang');
+
+            function syncCats() {
+                if (catHidden) {
+                    catHidden.value = [...form.querySelectorAll('[data-filter-cat]:checked')].map((c) => c.value).join(',');
+                }
+            }
+            function syncLangs() {
+                if (langHidden) {
+                    langHidden.value = [...form.querySelectorAll('[data-filter-lang]:checked')].map((c) => c.value).join(',');
+                }
+            }
+
+            form.querySelectorAll('[data-filter-cat]').forEach((cb) => cb.addEventListener('change', syncCats));
+            form.querySelectorAll('[data-filter-lang]').forEach((cb) => cb.addEventListener('change', syncLangs));
+
+            form.addEventListener('submit', function () {
+                syncCats();
+                syncLangs();
+                if (catHidden && !catHidden.value.trim()) {
+                    catHidden.removeAttribute('name');
+                }
+                if (langHidden && !langHidden.value.trim()) {
+                    langHidden.removeAttribute('name');
+                }
+                const qInput = form.querySelector('#catalogue-q');
+                if (qInput && !qInput.value.trim()) {
+                    qInput.removeAttribute('name');
+                }
+            });
+        })();
+	</script>
+{% endblock %}

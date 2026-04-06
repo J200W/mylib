@@ -1,0 +1,23 @@
+{% extends 'admin/catalog_form_layout.html.twig' %}
+
+{% block catalog_form %}
+	<p class="admin-hint">Champs obligatoires : titre, auteur, langue. Catégories et couverture optionnelles.{% if book is defined %} Laissez la couverture vide pour conserver l’image actuelle.{% endif %}</p>
+	{{ form_start(form, { attr: { class: 'admin-catalog-form', enctype: 'multipart/form-data' } }) }}
+	{{ form_errors(form) }}
+	<div class="admin-catalog-form__row2">
+		<div class="admin-catalog-form__cell">{{ form_row(form.title) }}</div>
+		<div class="admin-catalog-form__cell">{{ form_row(form.stock) }}</div>
+	</div>
+	{{ form_row(form.description) }}
+	<div class="admin-catalog-form__row2">
+		<div class="admin-catalog-form__cell">{{ form_row(form.author) }}</div>
+		<div class="admin-catalog-form__cell">{{ form_row(form.language) }}</div>
+	</div>
+	{{ form_row(form.category) }}
+	{{ form_row(form.coverFile) }}
+	<div class="admin-catalog-form__actions">
+		<a href="{{ path('app_admin') }}#admin-catalogue" class="admin-btn admin-btn--outline">Annuler</a>
+		<div class="admin-catalog-form__submit">{{ form_row(form.save) }}</div>
+	</div>
+	{{ form_end(form) }}
+{% endblock %}

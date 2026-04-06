@@ -1,0 +1,13 @@
+{% extends 'admin/catalog_form_layout.html.twig' %}
+
+{% block catalog_form %}
+	<p class="admin-hint">Le nom est obligatoire.</p>
+	{{ form_start(form, { attr: { class: 'admin-catalog-form' } }) }}
+	{{ form_errors(form) }}
+	{{ form_row(form.name) }}
+	<div class="admin-catalog-form__actions">
+		<a href="{{ path('app_admin') }}#admin-catalogue" class="admin-btn admin-btn--outline">Annuler</a>
+		<div class="admin-catalog-form__submit">{{ form_row(form.save) }}</div>
+	</div>
+	{{ form_end(form) }}
+{% endblock %}

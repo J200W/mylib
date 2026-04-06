@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Favoris{% endblock %}
+
+{% block body %}
+	<div id="favorites-top" class="catalogue-page" tabindex="-1">
+		<div class="catalogue-layout catalogue-layout--favorites">
+			<div class="catalogue-main catalogue-main--favorites">
+				<h1 class="catalogue-sidebar__brand">
+					<i class="bi bi-heart-fill catalogue-sidebar__brand-icon" aria-hidden="true"></i>
+					<span>Favoris</span>
+				</h1>
+
+				{% if books is empty %}
+					<p class="catalogue-empty">Vous n’avez pas encore de favoris.</p>
+					<p class="catalogue-favorites__hint">
+						<a href="{{ path('app_book_catalogue') }}">Parcourir le catalogue</a>
+					</p>
+				{% else %}
+					<ul class="catalogue-grid catalogue-grid--favorites">
+						{% for book in books %}
+							<a href="{{ path('app_book_show', { id: book.id }) }}" class="catalogue-card">
+								<div class="catalogue-card__cover">
+									<img src="{{ asset('img/covers/' ~ book.id ~ '.jpg') }}" alt="{{ book.title }}" class="catalogue-card__cover-img">
+								</div>
+								<div class="catalogue-card__body">
+									<h3 class="catalogue-card__title">{{ book.title }}</h3>
+									<p class="catalogue-card__subtitle">{{ book.author.firstname }}
+										{{ book.author.lastname }}</p>
+									<div class="catalogue-card__meta">
+										<div>
+											<dt>Catégories</dt>
+											<dd>{{ book.category|map(c => c.name)|join(', ') }}</dd>
+										</div>
+									</div>
+								</div>
+							</a>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			</div>
+		</div>
+
+		<a href="#favorites-top" class="catalogue-backtop" title="Haut de page" aria-label="Retour en haut de la page">
+			<i class="bi bi-arrow-up" aria-hidden="true"></i>
+		</a>
+	</div>
+{% endblock %}

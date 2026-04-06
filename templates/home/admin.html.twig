@@ -1,0 +1,486 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Administration
+{% endblock %}
+
+{% block body %}
+	<div class="admin-page">
+
+		<div class="admin-shell">
+			<nav class="admin-sidebar" aria-label="Navigation administration">
+				<p class="admin-sidebar__label">Modules</p>
+				<ul class="admin-sidebar__list">
+					{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_LIBRARIAN') %}
+						<li>
+							<a href="#admin-catalogue" class="admin-sidebar__link">
+								<i class="bi bi-book" aria-hidden="true"></i>
+								Catalogue &amp; livres
+							</a>
+						</li>
+					{% endif %}
+					{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_LIBRARIAN') %}
+						<li>
+							<a href="#admin-pending-reservations" class="admin-sidebar__link">
+								<i class="bi bi-graph-up" aria-hidden="true"></i>
+								Réservations en attente
+							</a>
+						</li>
+					{% endif %}
+					{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_LIBRARIAN') %}
+						<li>
+							<a href="#admin-history" class="admin-sidebar__link">
+								<i class="bi bi-clock-history" aria-hidden="true"></i>
+								Historique réservations
+							</a>
+						</li>
+					{% endif %}
+					{% if is_granted('ROLE_ADMIN') %}
+						<li>
+							<a href="#admin-users" class="admin-sidebar__link">
+								<i class="bi bi-people" aria-hidden="true"></i>
+								Utilisateurs &amp; rôles
+							</a>
+						</li>
+					{% endif %}
+                    {% if is_granted('ROLE_LIBRARIAN') %}
+						<li>
+							<a href="{{ path('app_book_catalogue') }}" class="admin-sidebar__link">
+								<i class="bi bi-chat-square-text" aria-hidden="true"></i>
+								Modérer les avis
+							</a>
+						</li>
+					{% endif %}
+				</ul>
+			</nav>
+
+			<div class="admin-content">
+				{% for label, messages in app.flashes %}
+					{% for message in messages %}
+						<p class="account-flash account-flash--{{ label }}" role="alert">{{ message }}</p>
+					{% endfor %}
+				{% endfor %}
+
+				<h1 class="admin-masthead__title">
+					<i class="bi bi-shield-lock admin-masthead__icon" aria-hidden="true"></i>
+					Administration MyLib
+				</h1>
+				{# --- Catalogue : titres, auteurs, catégories, langues + fiches --- #}
+				<section class="admin-section" id="admin-catalogue" aria-labelledby="admin-catalogue-title">
+					<div class="admin-section__head">
+						<h2 id="admin-catalogue-title" class="admin-section__title">Gérer le catalogue</h2>
+						<p class="admin-section__desc">Titres, auteurs, catégories, langues et fiches détaillées des livres.</p>
+					</div>
+
+					<div class="admin-toolbar">
+						<a href="{{ path('app_admin_book_new') }}" class="admin-btn admin-btn--primary">
+							<i class="bi bi-plus-lg" aria-hidden="true"></i>
+							Ajouter un livre
+						</a>
+					</div>
+
+					<div class="admin-card admin-card--table">
+						<h3 class="admin-card__title">Livres</h3>
+						<div class="admin-table-wrap admin-table-wrap--books-scroll">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th scope="col">Titre</th>
+										<th scope="col">Auteur</th>
+										<th scope="col">Catégories</th>
+										<th scope="col">Langue</th>
+										<th scope="col">Stock</th>
+										<th scope="col">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for book in admin_books %}
+										{% set s = book.stock %}
+										<tr>
+											<td>
+												<strong>{{ book.title }}</strong>
+											</td>
+											<td>{{ book.author ? book.author.firstname ~ ' ' ~ book.author.lastname : '—' }}</td>
+											<td>
+												{% set catNames = book.category|map(c => c.name) %}
+												{{ catNames is not empty ? catNames|join(', ') : '—' }}
+											</td>
+											<td>{{ book.language ? book.language.shortcode|upper : '—' }}</td>
+											<td>
+												{% if s is null %}
+													<span class="admin-pill admin-pill--muted">—</span>
+												{% elseif s <= 0 %}
+													<span class="admin-pill admin-pill--danger">{{ s }}</span>
+												{% elseif s <= 5 %}
+													<span class="admin-pill admin-pill--warn">{{ s }}</span>
+												{% else %}
+													<span class="admin-pill admin-pill--ok">{{ s }}</span>
+												{% endif %}
+											</td>
+											<td class="admin-table__actions">
+												<a href="{{ path('app_admin_book_edit', { id: book.id }) }}" class="admin-linkish">Éditer</a>
+												<a href="{{ path('app_book_show', { id: book.id }) }}" class="admin-linkish">Fiche détaillée</a>
+												<form method="post" action="{{ path('app_admin_book_delete', { id: book.id }) }}" class="admin-table__action-form" onsubmit="return confirm({{ ('Supprimer définitivement « ' ~ book.title ~ ' » ?')|json_encode|raw }});">
+													<input type="hidden" name="_token" value="{{ csrf_token('delete_book_' ~ book.id) }}">
+													<button type="submit" class="admin-linkish admin-linkish--danger">Supprimer</button>
+												</form>
+											</td>
+										</tr>
+									{% else %}
+										<tr>
+											<td colspan="6">Aucun livre en base. Utilisez « Ajouter un livre » pour en créer un.</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						<p class="admin-hint">« Éditer » modifie les données catalogue (y compris la couverture). « Fiche détaillée » ouvre la page publique du livre. « Supprimer » retire le livre, ses commentaires, réservations et favoris.</p>
+					</div>
+
+					<div class="admin-toolbar">
+						<a href="{{ path('app_admin_author_new') }}" class="admin-btn admin-btn--primary">
+							<i class="bi bi-plus-lg" aria-hidden="true"></i>
+							Ajouter un auteur
+						</a>
+					</div>
+
+					<div class="admin-card admin-card--table">
+						<h3 class="admin-card__title">Auteurs</h3>
+						<div class="admin-table-wrap admin-table-wrap--books-scroll">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th scope="col">Auteur</th>
+										<th scope="col">Livres</th>
+										<th scope="col">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for author in admin_authors %}
+										{% set nb = author.books|length %}
+										<tr>
+											<td>
+												<strong>{{ author.firstname }}
+													{{ author.lastname }}</strong>
+											</td>
+											<td>
+												{% if nb == 0 %}
+													<span class="admin-pill admin-pill--muted">0</span>
+												{% else %}
+													<span class="admin-pill admin-pill--ok">{{ nb }}</span>
+												{% endif %}
+											</td>
+											<td class="admin-table__actions">
+												<a href="{{ path('app_admin_author_edit', { id: author.id }) }}" class="admin-linkish">Éditer</a>
+												<form method="post" action="{{ path('app_admin_author_delete', { id: author.id }) }}" class="admin-table__action-form" onsubmit="return confirm({{ ('Supprimer l’auteur « ' ~ author.firstname ~ ' ' ~ author.lastname ~ ' » et tous ses livres ?')|json_encode|raw }});">
+													<input type="hidden" name="_token" value="{{ csrf_token('delete_author_' ~ author.id) }}">
+													<button type="submit" class="admin-linkish admin-linkish--danger">Supprimer</button>
+												</form>
+											</td>
+										</tr>
+									{% else %}
+										<tr>
+											<td colspan="3">Aucun auteur. Utilisez « Ajouter un auteur » pour en créer un.</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						<p class="admin-hint">« Éditer » modifie le nom affiché dans le catalogue. « Supprimer » supprime aussi tous les livres de cet auteur (commentaires, réservations, favoris, couvertures).</p>
+					</div>
+
+					<div class="admin-toolbar">
+						<a href="{{ path('app_admin_category_new') }}" class="admin-btn admin-btn--primary">
+							<i class="bi bi-plus-lg" aria-hidden="true"></i>
+							Ajouter une catégorie
+						</a>
+					</div>
+
+					<div class="admin-card admin-card--table">
+						<h3 class="admin-card__title">Catégories</h3>
+						<div class="admin-table-wrap admin-table-wrap--books-scroll">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th scope="col">Nom</th>
+										<th scope="col">Livres</th>
+										<th scope="col">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for category in admin_categories %}
+										{% set nb = category.books|length %}
+										<tr>
+											<td>
+												<strong>{{ category.name }}</strong>
+											</td>
+											<td>
+												{% if nb == 0 %}
+													<span class="admin-pill admin-pill--muted">0</span>
+												{% else %}
+													<span class="admin-pill admin-pill--ok">{{ nb }}</span>
+												{% endif %}
+											</td>
+											<td class="admin-table__actions">
+												<a href="{{ path('app_admin_category_edit', { id: category.id }) }}" class="admin-linkish">Éditer</a>
+												<form method="post" action="{{ path('app_admin_category_delete', { id: category.id }) }}" class="admin-table__action-form" onsubmit="return confirm({{ ('Supprimer la catégorie « ' ~ category.name ~ ' » ? Les livres resteront dans le catalogue.')|json_encode|raw }});">
+													<input type="hidden" name="_token" value="{{ csrf_token('delete_category_' ~ category.id) }}">
+													<button type="submit" class="admin-linkish admin-linkish--danger">Supprimer</button>
+												</form>
+											</td>
+										</tr>
+									{% else %}
+										<tr>
+											<td colspan="3">Aucune catégorie. Utilisez « Ajouter une catégorie » pour en créer une.</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						<p class="admin-hint">« Supprimer » retire seulement l’étiquette : les livres ne sont pas effacés.</p>
+					</div>
+
+					<div class="admin-toolbar">
+						<a href="{{ path('app_admin_language_new') }}" class="admin-btn admin-btn--primary">
+							<i class="bi bi-plus-lg" aria-hidden="true"></i>
+							Ajouter une langue
+						</a>
+					</div>
+
+					<div class="admin-card admin-card--table">
+						<h3 class="admin-card__title">Langues</h3>
+						<div class="admin-table-wrap admin-table-wrap--books-scroll">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th scope="col">Langue</th>
+										<th scope="col">Code</th>
+										<th scope="col">Livres</th>
+										<th scope="col">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for language in admin_languages %}
+										{% set nb = language.books|length %}
+										<tr>
+											<td>
+												<strong>{{ language.country }}</strong>
+											</td>
+											<td>{{ language.shortcode|upper }}</td>
+											<td>
+												{% if nb == 0 %}
+													<span class="admin-pill admin-pill--muted">0</span>
+												{% else %}
+													<span class="admin-pill admin-pill--ok">{{ nb }}</span>
+												{% endif %}
+											</td>
+											<td class="admin-table__actions">
+												<a href="{{ path('app_admin_language_edit', { id: language.id }) }}" class="admin-linkish">Éditer</a>
+												<form method="post" action="{{ path('app_admin_language_delete', { id: language.id }) }}" class="admin-table__action-form" onsubmit="return confirm({{ ('Supprimer la langue « ' ~ language.country ~ ' » et tous les livres dans cette langue ?')|json_encode|raw }});">
+													<input type="hidden" name="_token" value="{{ csrf_token('delete_language_' ~ language.id) }}">
+													<button type="submit" class="admin-linkish admin-linkish--danger">Supprimer</button>
+												</form>
+											</td>
+										</tr>
+									{% else %}
+										<tr>
+											<td colspan="4">Aucune langue. Utilisez « Ajouter une langue » pour en créer une.</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						<p class="admin-hint">« Supprimer » efface la langue et tous les livres rattachés (commentaires, réservations, favoris, couvertures).</p>
+					</div>
+
+				</section>
+
+				{# --- Réservations en attente --- #}
+				{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_LIBRARIAN') %}
+					<section class="admin-section" id="admin-pending-reservations" aria-labelledby="admin-pending-reservations-title">
+						<div class="admin-section__head">
+							<h2 id="admin-pending-reservations-title" class="admin-section__title">Réservations en attente</h2>
+							<p class="admin-section__desc">Valider ou refuser les demandes d’emprunt. L’exemplaire n’est décompté du stock qu’à l’acceptation.</p>
+						</div>
+
+						<div class="admin-card admin-card--table">
+							<div class="admin-table-wrap admin-table-wrap--books-scroll">
+								<table class="admin-table">
+									<thead>
+										<tr>
+											<th scope="col">Usager</th>
+											<th scope="col">Livre</th>
+											<th scope="col">Période</th>
+											<th scope="col">Actions</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for r in admin_pending_reservations %}
+											<tr>
+												<td>{{ r.user.firstname }}
+													{{ r.user.lastname }}</td>
+												<td>
+                                                    <a href="{{ path('app_book_show', { id: r.book.id }) }}">{{ r.book.title }}</a>
+                                                </td>
+												<td>{{ r.dateStart|date('d/m/Y') }}
+													→
+													{{ r.dateEnd|date('d/m/Y') }}</td>
+												<td class="admin-table__actions">
+													<form method="post" action="{{ path('app_admin_reservation_accept', { id: r.id }) }}" class="admin-table__action-form" onsubmit="return confirm('Accepter cette demande d’emprunt ?');">
+														<input type="hidden" name="_token" value="{{ csrf_token('admin_reservation_accept_' ~ r.id) }}">
+														<button type="submit" class="admin-btn admin-btn--xs admin-btn--primary">Valider</button>
+													</form>
+													<form method="post" action="{{ path('app_admin_reservation_reject', { id: r.id }) }}" class="admin-table__action-form" onsubmit="return confirm('Refuser cette demande ?');">
+														<input type="hidden" name="_token" value="{{ csrf_token('admin_reservation_reject_' ~ r.id) }}">
+														<button type="submit" class="admin-btn admin-btn--xs admin-btn--outline">Refuser</button>
+													</form>
+												</td>
+											</tr>
+										{% else %}
+											<tr>
+												<td colspan="4">Aucune demande en attente.</td>
+											</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</section>
+				{% endif %}
+
+				{# --- Historique réservations --- #}
+				{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_LIBRARIAN') %}
+					<section class="admin-section" id="admin-history" aria-labelledby="admin-history-title">
+						<div class="admin-section__head">
+							<h2 id="admin-history-title" class="admin-section__title">Historique des réservations</h2>
+							<p class="admin-section__desc">Consultation transversale des emprunts passés et en cours par usager.</p>
+						</div>
+
+						<div class="admin-card admin-card--table">
+							<form method="get" action="{{ path('app_admin') }}" class="admin-toolbar admin-toolbar--in-card" aria-label="Filtrer l’historique">
+								<label class="admin-inline-label">
+									<span>Filtrer par usager</span>
+									<select class="admin-select" name="history_user" aria-label="Usager">
+										<option value="" {{ admin_history_filter_user_id is null ? ' selected' : '' }}>Tous les usagers</option>
+										{% for u in admin_users_for_filter %}
+											<option value="{{ u.id }}" {{ admin_history_filter_user_id == u.id ? ' selected' : '' }}>{{ u.email }}</option>
+										{% endfor %}
+									</select>
+								</label>
+								<button type="submit" class="admin-btn admin-btn--outline">Appliquer</button>
+							</form>
+							<div class="admin-table-wrap admin-table-wrap--books-scroll">
+								<table class="admin-table">
+									<thead>
+										<tr>
+											<th scope="col">Date</th>
+											<th scope="col">Usager</th>
+											<th scope="col">Livre</th>
+											<th scope="col">Début</th>
+											<th scope="col">Fin</th>
+											<th scope="col">Statut</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for r in admin_reservation_history %}
+											{% set st = r.status ?? 0 %}
+											{% set displayDate = r.createdAt ?? r.dateStart %}
+											<tr>
+												<td>{{ displayDate|date('d/m/Y') }}</td>
+												<td>{{ r.user.email }}</td>
+												<td>
+                                                    <a href="{{ path('app_book_show', { id: r.book.id }) }}">{{ r.book.title }}</a>
+                                                </td>
+												<td>{{ r.dateStart|date('d/m/Y') }}</td>
+												<td>{{ r.dateEnd|date('d/m/Y') }}</td>
+												<td>
+													{% if st == 3 %}
+														<span class="admin-badge admin-badge--ok">Terminé</span>
+													{% elseif st == 2 %}
+														<span class="admin-badge admin-badge--muted">Refusé</span>
+													{% elseif st == 1 %}
+														<span class="admin-badge admin-badge--pending">En cours</span>
+													{% else %}
+														<span class="admin-badge admin-badge--warn">En attente</span>
+													{% endif %}
+												</td>
+											</tr>
+										{% else %}
+											<tr>
+												<td colspan="6">Aucune réservation pour ce filtre.</td>
+											</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</section>
+				{% endif %}
+
+                {# --- Utilisateurs & rôles --- #}
+				{% if is_granted('ROLE_ADMIN') %}
+					<section class="admin-section" id="admin-users" aria-labelledby="admin-users-title">
+						<div class="admin-section__head">
+							<h2 id="admin-users-title" class="admin-section__title">Utilisateurs &amp; rôles</h2>
+							<p class="admin-section__desc">Attribuer les rôles (usager, bibliothécaire, admin) et gérer les profils.</p>
+						</div>
+
+						{% if is_granted('ROLE_ADMIN') %}
+							<div class="admin-card admin-card--table">
+								<div class="admin-table-wrap admin-table-wrap--books-scroll">
+									<table class="admin-table">
+										<thead>
+											<tr>
+												<th scope="col">E-mail</th>
+												<th scope="col">Nom</th>
+												<th scope="col">Rôle</th>
+												<th scope="col">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											{% for u in admin_users_table %}
+												{% set gr = u.roles %}
+												{% set roleValue = 'ROLE_USER' %}
+												{% if 'ROLE_ADMIN' in gr %}
+													{% set roleValue = 'ROLE_ADMIN' %}
+												{% elseif 'ROLE_LIBRARIAN' in gr %}
+													{% set roleValue = 'ROLE_LIBRARIAN' %}
+												{% endif %}
+												<tr>
+													<td>{{ u.email }}</td>
+													<td>{{ u.firstname }}
+														{{ u.lastname }}</td>
+													<td>
+														<form method="post" action="{{ path('app_admin_user_role', { id: u.id }) }}" class="admin-table__inline-form">
+															<input type="hidden" name="_token" value="{{ csrf_token('admin_user_role_' ~ u.id) }}">
+															<label class="visually-hidden" for="user-role-{{ u.id }}">Rôle pour {{ u.email }}</label>
+															<select class="admin-select" id="user-role-{{ u.id }}" name="role" aria-label="Rôle" onchange="this.form.submit()">
+																<option value="ROLE_USER" {{ roleValue == 'ROLE_USER' ? ' selected' : '' }}>Usager</option>
+																<option value="ROLE_LIBRARIAN" {{ roleValue == 'ROLE_LIBRARIAN' ? ' selected' : '' }}>Bibliothécaire</option>
+																<option value="ROLE_ADMIN" {{ roleValue == 'ROLE_ADMIN' ? ' selected' : '' }}>Administrateur</option>
+															</select>
+														</form>
+													</td>
+													<td class="admin-table__actions">
+														<a href="{{ path('app_admin_user_edit', { id: u.id }) }}" class="admin-linkish">Éditer le profil</a>
+													</td>
+												</tr>
+											{% else %}
+												<tr>
+													<td colspan="4">Aucun usager enregistré.</td>
+												</tr>
+											{% endfor %}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						{% else %}
+							<p class="admin-hint">La gestion des comptes et des rôles est réservée aux administrateurs.</p>
+						{% endif %}
+					</section>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endblock %}
+{% block footer %}
+{% endblock %}

@@ -1,0 +1,33 @@
+/*
+ * Palette extraite de la maquette eBook (tons chauds, beige, terracotta).
+ */
+:root {
+    /* Accent — bouton recherche, titres sous les couvertures */
+    --color-accent: #d48c5e;
+    --color-accent-rgb: 212 140 94;
+
+    /* En-tête — bandeau supérieur */
+    --color-header: #c59d6d;
+    --color-header-rgb: 197 157 109;
+
+    /* Fond principal de la page */
+    --color-bg-page: #fdf1e2;
+    --color-bg-page-rgb: 253 241 226;
+
+    /* Texte principal (titres, slogan, contours logo) */
+    --color-text: #1a1a1a;
+    --color-text-rgb: 26 26 26;
+
+    /* Noir plein (bordures fines boutons, texte fort) */
+    --color-text-strong: #000000;
+    --color-text-strong-rgb: 0 0 0;
+
+    /* Surfaces claires — champ de recherche, cartes */
+    --color-surface: #ffffff;
+    --color-surface-rgb: 255 255 255;
+
+    /* Alias sémantiques pour les composants */
+    --color-primary: var(--color-accent);
+    --color-background: var(--color-bg-page);
+    --color-border: var(--color-text-strong);
+}

@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription{% endblock %}
+
+{% block header %}{% endblock %}
+{% block body %}
+	<section class="auth-page" aria-labelledby="auth-register-title">
+		<div class="auth-card auth-card--wide">
+			<a href="{{ path('app_book_catalogue') }}" class="auth-login-logo">
+				<img src="{{ asset('img/logo.png') }}" alt="MyLib" width="48" height="48">
+			</a>
+			<h1 id="auth-register-title" class="auth-title">Créer un compte</h1>
+			<p class="auth-lead">Rejoignez MyLib pour réserver des livres et suivre vos lectures.</p>
+
+			{{ form_start(form, { attr: { class: 'auth-form' } }) }}
+
+			<div class="form-grid">
+				<div class="form-field">
+					{{ form_label(form.firstname) }}
+					{{ form_widget(form.firstname) }}
+					{{ form_errors(form.firstname) }}
+				</div>
+				<div class="form-field">
+					{{ form_label(form.lastname) }}
+					{{ form_widget(form.lastname) }}
+					{{ form_errors(form.lastname) }}
+				</div>
+			</div>
+
+			<div class="form-field">
+				{{ form_label(form.email) }}
+				{{ form_widget(form.email) }}
+				{{ form_errors(form.email) }}
+			</div>
+
+			<div class="form-field">
+				{{ form_label(form.password) }}
+				{{ form_widget(form.password) }}
+				{% if form_errors(form.password) %}
+					{{ form_errors(form.password) }}
+                {% else %}
+                    {{ form_help(form.password) }}
+				{% endif %}
+			</div>
+
+			<div class="form-field">
+				{{ form_label(form.confirm_password) }}
+				{{ form_widget(form.confirm_password) }}
+				{{ form_errors(form.confirm_password) }}
+			</div>
+
+			{{ form_errors(form) }}
+
+			<button type="submit" class="btn-auth btn-auth--primary">S'inscrire</button>
+
+			{{ form_end(form) }}
+
+			<p class="auth-footer-text">
+				Déjà inscrit ?
+				<a href="{{ path('app_auth_login') }}">Se connecter</a>
+			</p>
+		</div>
+	</section>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block header %}{% endblock %}
+{% block body %}
+	<section class="auth-page" aria-labelledby="auth-login-title">
+		<div class="auth-card">
+			<a href="{{ path('app_book_catalogue') }}" class="auth-login-logo">
+				<img src="{{ asset('img/logo.png') }}" alt="MyLib" width="48" height="48">
+			</a>
+			<h1 id="auth-login-title" class="auth-title">Connexion</h1>
+			<p class="auth-lead">Accédez à votre compte MyLib avec votre adresse e-mail.</p>
+
+			{% if error %}
+				<div class="auth-alert auth-alert--error" role="alert">
+					{{ error.messageKey|trans(error.messageData, 'security') }}
+				</div>
+			{% endif %}
+
+			<form method="post" action="{{ path('app_auth_login') }}" class="auth-form">
+				<div class="form-field">
+					<label class="form-label" for="inputEmail">E-mail</label>
+					<input type="email" name="_username" id="inputEmail" class="form-input" value="{{ last_username }}" autocomplete="username" required autofocus>
+				</div>
+				<div class="form-field">
+					<label class="form-label" for="inputPassword">Mot de passe</label>
+					<input type="password" name="_password" id="inputPassword" class="form-input" autocomplete="current-password" required>
+				</div>
+
+				<input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+				<button type="submit" class="btn-auth btn-auth--primary">Se connecter</button>
+			</form>
+
+			<p class="auth-footer-text">
+				Pas encore de compte ?
+				<a href="{{ path('app_auth_register') }}">Créer un compte</a>
+			</p>
+		</div>
+	</section>
+{% endblock %}

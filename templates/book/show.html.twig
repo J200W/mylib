@@ -1,0 +1,365 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+	{{ book.title }}
+{% endblock %}
+
+{% block body %}
+	<article class="book-show" itemscope itemtype="https://schema.org/Book">
+		<nav class="book-show__nav" aria-label="Fil d’Ariane">
+			<a href="{{ path('app_book_catalogue') }}" class="book-show__back">
+				<i class="bi bi-arrow-left" aria-hidden="true"></i>
+				Retour au catalogue
+			</a>
+		</nav>
+
+		{% for label, messages in app.flashes %}
+			{% for message in messages %}
+				<p class="book-show__flash book-show__flash--{{ label }}" role="alert">{{ message }}</p>
+			{% endfor %}
+		{% endfor %}
+
+		<div class="book-show__layout">
+			<div class="book-show__media">
+				<div class="book-show__figure">
+					<img src="{{ asset('img/covers/' ~ book.id ~ '.jpg') }}" alt="" class="book-show__cover" width="320" height="480" loading="eager" decoding="async">
+					<figcaption class="visually-hidden">{{ book.title }}</figcaption>
+				</div>
+				<div class="book-show__actions">
+					<form method="post" action="{{ path('app_book_favorite', { id: book.id }) }}" class="book-show__action-form">
+						<input type="hidden" name="_token" value="{{ csrf_token('book_favorite_' ~ book.id) }}">
+						{% if is_favorite %}
+							<button type="submit" class="book-show__btn book-show__btn--favorite">
+								<i class="bi bi-heart-fill" aria-hidden="true"></i>
+								Retirer des favoris
+							</button>
+						{% else %}
+							<button type="submit" class="book-show__btn book-show__btn--favorite">
+								<i class="bi bi-heart" aria-hidden="true"></i>
+								Ajouter aux favoris
+							</button>
+						{% endif %}
+					</form>
+					{% if is_granted('ROLE_USER') %}
+						<button type="button" class="book-show__btn book-show__btn--borrow" id="borrow-open-btn" {% if not borrow_allowed %}disabled aria-disabled="true"{% endif %}>
+							<i class="bi bi-bookmark-check" aria-hidden="true"></i>
+							Emprunter
+						</button>
+					{% endif %}
+				</div>
+			</div>
+
+			<div class="book-show__content">
+				<div class="book-show__header">
+					<h1 class="book-show__title" itemprop="name">{{ book.title }}</h1>
+					<p class="book-show__author">
+						<span class="book-show__author-label">Par</span>
+						<span itemprop="author" itemscope itemtype="https://schema.org/Person">
+							<span itemprop="givenName">{{ book.author.firstname }}</span>
+							<span itemprop="familyName">{{ book.author.lastname }}</span>
+						</span>
+					</p>
+				</div>
+
+				{% if book.description %}
+					<section class="book-show__section book-show__section--prose" aria-labelledby="book-desc-heading">
+						<h2 id="book-desc-heading" class="book-show__section-title">Résumé</h2>
+						<div class="book-show__description" itemprop="description">
+							{{ book.description|nl2br }}
+						</div>
+					</section>
+				{% endif %}
+
+				{% if book.category is not empty %}
+					<section class="book-show__section" aria-labelledby="book-genres-heading">
+						<h2 id="book-genres-heading" class="book-show__section-title">Catégories</h2>
+						<ul class="book-show__tags" role="list">
+							{% for cat in book.category %}
+								<li>
+									<span class="book-show__tag">{{ cat.name }}</span>
+								</li>
+							{% endfor %}
+						</ul>
+					</section>
+				{% endif %}
+
+				<div class="book-show__facts">
+					<div class="book-show__fact">
+						<dt>
+							<i class="bi bi-translate" aria-hidden="true"></i>
+							Langue
+						</dt>
+						<dd>
+							{{ book.language.country }}
+							<span class="book-show__muted">({{ book.language.shortcode|upper }})</span>
+						</dd>
+					</div>
+					<div class="book-show__fact">
+						<dt>
+							<i class="bi bi-box-seam" aria-hidden="true"></i>
+							Disponibilité
+						</dt>
+						<dd>
+							{% set s = book.stock %}
+							{% if s is null %}
+								<span class="book-show__stock book-show__stock--unknown">Non renseigné</span>
+							{% elseif s == 0 %}
+								{% if borrow_allowed and borrow_earliest is not null %}
+									<span class="book-show__stock book-show__stock--low">Aucun exemplaire en bibliothèque pour l’instant. Vous pouvez demander un emprunt à partir du
+										<strong>{{ borrow_earliest|date('d/m/Y') }}</strong>.</span>
+								{% else %}
+									<span class="book-show__stock book-show__stock--out">Rupture de stock</span>
+								{% endif %}
+							{% elseif s <= 5 %}
+								<span class="book-show__stock book-show__stock--low">{{ s }}
+									exemplaire{{ s > 1 ? 's' : '' }} - derniers stocks</span>
+							{% else %}
+								<span class="book-show__stock book-show__stock--ok">{{ s }}
+									exemplaire{{ s > 1 ? 's' : '' }}
+									en bibliothèque</span>
+							{% endif %}
+						</dd>
+					</div>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<section class="book-comments" id="avis-lecteurs" aria-labelledby="book-comments-heading">
+		<div class="book-comments__inner">
+			<h2 id="book-comments-heading" class="book-comments__title">Avis des lecteurs</h2>
+
+			{% if comment_stats.count > 0 %}
+				{% set avg = comment_stats.average %}
+				{% set fullStars = avg|round(0, 'floor') %}
+				{% set frac = avg - fullStars %}
+				<p class="book-comments__summary">
+					<span class="book-comments__average" aria-hidden="true">
+						{% for i in 1..5 %}
+							{% if i <= fullStars %}
+								<i class="bi bi-star-fill book-comments__star" aria-hidden="true"></i>
+							{% elseif i == fullStars + 1 and frac >= 0.5 %}
+								<i class="bi bi-star-half book-comments__star" aria-hidden="true"></i>
+							{% else %}
+								<i class="bi bi-star book-comments__star" aria-hidden="true"></i>
+							{% endif %}
+						{% endfor %}
+					</span>
+					<span class="book-comments__average-text">
+						<strong>{{ avg }}</strong>
+						/ 5 - {{ comment_stats.count }}
+						avis</span>
+				</p>
+			{% endif %}
+
+			<div class="book-comments__toolbar" role="group" aria-label="Trier les avis">
+				<span class="book-comments__toolbar-label">Trier :</span>
+				<nav class="book-comments__sort">
+					<a href="{{ path('app_book_show', { id: book.id, comments_sort: 'recent' }) }}#avis-lecteurs" class="book-comments__sort-link {{ comments_sort == 'recent' ? 'is-active' : '' }}">Plus récents</a>
+					<a href="{{ path('app_book_show', { id: book.id, comments_sort: 'oldest' }) }}#avis-lecteurs" class="book-comments__sort-link {{ comments_sort == 'oldest' ? 'is-active' : '' }}">Plus anciens</a>
+					<a href="{{ path('app_book_show', { id: book.id, comments_sort: 'rating_high' }) }}#avis-lecteurs" class="book-comments__sort-link {{ comments_sort == 'rating_high' ? 'is-active' : '' }}">Mieux notés</a>
+					<a href="{{ path('app_book_show', { id: book.id, comments_sort: 'rating_low' }) }}#avis-lecteurs" class="book-comments__sort-link {{ comments_sort == 'rating_low' ? 'is-active' : '' }}">Moins bien notés</a>
+				</nav>
+			</div>
+
+			{% if is_granted('ROLE_USER') %}
+				{% if can_comment_book and comment_form is not null %}
+					<div class="book-comments__form-wrap">
+						<h3 class="book-comments__form-title">{{ comment_form.vars.data.id ? 'Modifier votre avis' : 'Rédiger un avis' }}</h3>
+						<p class="book-comments__form-hint">Réservé aux livres que vous avez rendus après emprunt (depuis votre compte ou le guichet).</p>
+						{{ form_start(comment_form, { attr: { class: 'book-comments__form' } }) }}
+						<input type="hidden" name="comments_sort" value="{{ comments_sort }}">
+						<div class="book-comments__form-fields">
+							{{ form_row(comment_form.rating, {
+								row_attr: { class: 'book-comments__field' },
+								label_attr: { class: 'book-comments__label' }
+							}) }}
+							{{ form_row(comment_form.text, {
+								row_attr: { class: 'book-comments__field' },
+								label_attr: { class: 'book-comments__label' }
+							}) }}
+						</div>
+						<button type="submit" class="book-comments__submit">
+							<i class="bi bi-send-fill" aria-hidden="true"></i>
+							{{ comment_form.vars.data.id ? 'Mettre à jour' : 'Publier mon avis' }}
+						</button>
+						{{ form_end(comment_form) }}
+					</div>
+				{% elseif comment_blocked_by_moderation %}
+					<p class="book-comments__login-hint book-comments__login-hint--moderation" role="status">Votre avis sur cet livre a été retiré par la modération. Vous ne pouvez plus publier de commentaire sur ce livre.</p>
+				{% elseif not can_comment_book %}
+					<p class="book-comments__login-hint">Pour laisser un avis, empruntez ce livre puis enregistrez son retour : le formulaire apparaîtra ici une fois le livre rendu.</p>
+				{% endif %}
+			{% else %}
+				<p class="book-comments__login-hint">
+					<a href="{{ path('app_auth_login') }}">Connectez-vous</a>
+					pour publier un avis après le retour d’un emprunt.</p>
+			{% endif %}
+
+			{% if comments is empty %}
+				<p class="book-comments__empty">Aucun avis pour le moment. Soyez le premier à partager votre ressenti !</p>
+			{% else %}
+				<ul class="book-comments__list" role="list">
+					{% for c in comments %}
+						<li class="book-comments__item">
+							<header class="book-comments__item-head">
+								<span class="book-comments__author">{{ c.user.firstname }}
+									{{ c.user.lastname|slice(0, 1)|upper }}.</span>
+								<span class="book-comments__item-head-right">
+									<span class="book-comments__meta">
+										<span class="book-comments__item-stars" aria-label="Note {{ c.rating }} sur 5">
+											{% for i in 1..5 %}
+												<i class="bi {{ i <= c.rating ? 'bi-star-fill' : 'bi-star' }} book-comments__star" aria-hidden="true"></i>
+											{% endfor %}
+										</span>
+										<time class="book-comments__date" datetime="{{ c.createdAt|date('c') }}">{{ c.createdAt|date('d/m/Y') }}</time>
+									</span>
+									{% if is_granted('ROLE_ADMIN') %}
+										<form method="post" action="{{ path('app_book_comment_disable', { id: book.id, commentId: c.id }) }}" class="book-comments__moderate-form" onsubmit="return confirm('Masquer cet avis ? L’usager ne pourra plus commenter cet livre.');">
+											<input type="hidden" name="_token" value="{{ csrf_token('comment_disable_' ~ c.id) }}">
+											<input type="hidden" name="comments_sort" value="{{ comments_sort }}">
+											<button type="submit" class="book-comments__moderate-btn" title="Masquer l’avis (modération)">
+												<i class="bi bi-eye-slash" aria-hidden="true"></i>
+												<span class="visually-hidden">Masquer cet avis</span>
+											</button>
+										</form>
+									{% endif %}
+								</span>
+							</header>
+							<div class="book-comments__body">{{ c.text }}</div>
+						</li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+
+			{% if is_granted('ROLE_ADMIN') and hidden_comments is not empty %}
+				<div class="book-comments__hidden-panel" aria-labelledby="book-comments-hidden-heading">
+					<h3 id="book-comments-hidden-heading" class="book-comments__hidden-title">
+						<i class="bi bi-shield-lock" aria-hidden="true"></i>
+						Avis masqués (administration)
+					</h3>
+					<p class="book-comments__hidden-desc">Ces avis ne sont pas visibles du public. Vous pouvez les réafficher.</p>
+					<ul class="book-comments__list book-comments__list--hidden" role="list">
+						{% for c in hidden_comments %}
+							<li class="book-comments__item book-comments__item--hidden">
+								<header class="book-comments__item-head">
+									<span class="book-comments__author">{{ c.user.firstname }}
+										{{ c.user.lastname|slice(0, 1)|upper }}.</span>
+									<span class="book-comments__item-head-right">
+										<span class="book-comments__meta">
+											<span class="book-comments__item-stars" aria-label="Note {{ c.rating }} sur 5">
+												{% for i in 1..5 %}
+													<i class="bi {{ i <= c.rating ? 'bi-star-fill' : 'bi-star' }} book-comments__star" aria-hidden="true"></i>
+												{% endfor %}
+											</span>
+											<time class="book-comments__date" datetime="{{ c.createdAt|date('c') }}">{{ c.createdAt|date('d/m/Y') }}</time>
+										</span>
+										<form method="post" action="{{ path('app_book_comment_enable', { id: book.id, commentId: c.id }) }}" class="book-comments__moderate-form" onsubmit="return confirm('Réafficher cet avis sur la fiche publique ?');">
+											<input type="hidden" name="_token" value="{{ csrf_token('comment_enable_' ~ c.id) }}">
+											<input type="hidden" name="comments_sort" value="{{ comments_sort }}">
+											<button type="submit" class="book-comments__moderate-btn book-comments__moderate-btn--enable" title="Réactiver l’avis">
+												<i class="bi bi-eye" aria-hidden="true"></i>
+												<span class="visually-hidden">Réactiver cet avis</span>
+											</button>
+										</form>
+									</span>
+								</header>
+								<div class="book-comments__body">{{ c.text|nl2br }}</div>
+							</li>
+						{% endfor %}
+					</ul>
+				</div>
+			{% endif %}
+		</div>
+	</section>
+
+	<dialog class="book-show__dialog" id="borrow-dialog" aria-labelledby="borrow-dialog-title">
+		{{ form_start(borrow_form, { attr: { class: 'book-show__borrow-form', id: 'borrow-dialog-form' } }) }}
+		<h2 id="borrow-dialog-title" class="book-show__dialog-title">Demande d’emprunt</h2>
+		<p class="book-show__dialog-hint">Choisissez vos dates. Durée maximum : <strong>3 semaines</strong> (21 jours).</p>
+		<div class="book-show__borrow-fields">
+			{{ form_row(borrow_form.date_start, {
+				row_attr: { class: 'book-show__borrow-field' },
+				label_attr: { class: 'book-show__borrow-label' },
+				attr: { class: 'book-show__borrow-input' }
+			}) }}
+			{{ form_row(borrow_form.date_end, {
+				row_attr: { class: 'book-show__borrow-field' },
+				label_attr: { class: 'book-show__borrow-label' },
+				attr: { class: 'book-show__borrow-input' }
+			}) }}
+		</div>
+		<div class="book-show__dialog-actions">
+			<button type="button" class="book-show__btn book-show__btn--dialog-cancel" data-borrow-cancel>Annuler</button>
+			<button type="submit" class="book-show__btn book-show__btn--borrow">
+				<i class="bi bi-check-lg" aria-hidden="true"></i>
+				Confirmer la demande
+			</button>
+		</div>
+		{{ form_end(borrow_form) }}
+	</dialog>
+
+	<script>
+		(function () {
+const dialog = document.getElementById('borrow-dialog');
+const openBtn = document.getElementById('borrow-open-btn');
+const borrowFormEl = document.getElementById('borrow-dialog-form');
+if (! dialog || ! openBtn || ! borrowFormEl) {
+return;
+}
+const dateInputs = borrowFormEl.querySelectorAll('input[type="date"]');
+const startInput = dateInputs[0];
+const endInput = dateInputs[1];
+if (! startInput || ! endInput) {
+return;
+}
+
+function pad(n) {
+return String(n).padStart(2, '0');
+}
+function toYMD(d) {
+return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function updateEndConstraints() {
+const v = startInput.value;
+if (! v) {
+return;
+}
+const parts = v.split('-').map(Number);
+const start = new Date(parts[0], parts[1] - 1, parts[2]);
+if (Number.isNaN(start.getTime())) {
+return;
+}
+const max = new Date(start);
+max.setDate(max.getDate() + 21);
+endInput.min = v;
+endInput.max = toYMD(max);
+if (endInput.value && (endInput.value < endInput.min || endInput.value > endInput.max)) {
+endInput.value = endInput.min;
+}
+}
+
+openBtn.addEventListener('click', () => {
+updateEndConstraints();
+if (! endInput.value || endInput.value < endInput.min || endInput.value > endInput.max) {
+endInput.value = endInput.min;
+}
+dialog.showModal();
+});
+
+const cancelBtn = dialog.querySelector('[data-borrow-cancel]');
+if (cancelBtn) {
+cancelBtn.addEventListener('click', () => dialog.close());
+}
+
+dialog.addEventListener('click', (e) => {
+if (e.target === dialog) {
+dialog.close();
+}
+});
+
+startInput.addEventListener('change', updateEndConstraints);
+})();
+	</script>
+{% endblock %}

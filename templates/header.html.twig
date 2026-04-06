@@ -1,0 +1,34 @@
+<header class="site-header">
+	<div class="header-inner">
+		<div class="header-left">
+			<a class="logo-link" href="{{ path('app_book_catalogue') }}" aria-label="MyLib — Accueil">
+				<img class="logo-img" src="{{ asset('img/logo.png') }}" alt="MyLib" width="48" height="48">
+			</a>
+		</div>
+
+		<div class="header-center">
+			<form class="search-bar js-nav-search" action="{{ path('app_book_catalogue') }}" method="get" role="search" data-search-url="{{ path('app_search_works') }}">
+				<i class="bi bi-search search-icon"></i>
+				<label class="visually-hidden" for="header-search-q">Recherche</label>
+				<input id="header-search-q" type="search" name="q" class="search-input" placeholder="Je recherche un livre…" value="{{ app.request.query.get('q') }}" autocomplete="off" aria-label="Rechercher un livre">
+				<button type="submit" class="search-submit">Rechercher</button>
+				<div class="nav-search-results" hidden></div>
+			</form>
+		</div>
+
+		<div class="header-right">
+			<nav class="main-nav" aria-label="Navigation principale">
+				<a href="{{ path('app_book_catalogue') }}">Catalogue</a>
+				{% if app.user %}
+					<a href="{{ path('app_account') }}">Mon compte</a>
+					{% if is_granted('ROLE_LIBRARIAN') %}
+						<a href="{{ path('app_admin') }}">Administration</a>
+					{% endif %}
+					<a href="{{ logout_path() }}">Déconnexion</a>
+				{% else %}
+					<a href="{{ path('app_auth_login') }}">Connexion</a>
+				{% endif %}
+			</nav>
+		</div>
+	</div>
+</header>
